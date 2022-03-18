@@ -39,4 +39,9 @@ setuptools>=56.0.0
 testinfra>=5.3.1
 urllib3>=1.26.5
 yamllint
-sqlalchemy-stubs==0.3
+sqlalchemy-stubs==0.4
+types-mock
+types-PyYAML
+types-redis
+types-requests
+types-setuptools
