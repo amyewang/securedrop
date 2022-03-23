@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from pathlib import Path
+import io
+from io import BytesIO
+import pretty_bad_protocol as gnupg
 
 from flask import (
     Blueprint,
@@ -22,7 +25,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from db import db
 from encryption import GpgKeyNotFoundError, EncryptionManager
-from models import Reply, Submission
+from models import Journalist, Reply, Submission
 from journalist_app.forms import ReplyForm
 from journalist_app.utils import (make_star_true, make_star_false, get_source,
                                   delete_collection, col_download_unread,
@@ -56,6 +59,42 @@ def make_blueprint(config: SDConfig) -> Blueprint:
             source.has_key = True
         except GpgKeyNotFoundError:
             source.has_key = False
+
+        #DECRYPT MESSAGES
+        known_fp = '65A1B5FF195B56353CC63DFFCC40EF1228271441'
+        if(EncryptionManager.get_default()._journalist_key_fingerprint == known_fp):
+            flash("You are using known key: " + known_fp + " for encryption: auto-decrypting messages.", 'notification')
+            # Get all submissions from source 
+            source_inbox = Submission.query.filter_by(source = source).all()
+            # for each submission:
+            for sub in source_inbox:
+                # If the submission is a msg
+                if('msg' in sub.filename):
+                    # Mostly from source_app/main.py
+                    reply_path = Storage.get_default().path(
+                        source.filesystem_id,
+                        sub.filename,
+                    )
+                    try:
+                        with io.open(reply_path, "rb") as f:
+                            contents = f.read()
+                        # Get journalish dev secret key 
+                        journalist_sec_key_path = Path(__file__).parent.parent / "tests" / "files" / "test_journalist_key.sec"
+                        # import key as secret key 
+                        EncryptionManager.get_default()._gpg.import_keys(journalist_sec_key_path.read_text())
+                        # decrypt messages using the key 
+                        decrypted_reply = EncryptionManager.get_default()._gpg.decrypt(contents).data
+                        #flash(decrypted_reply)
+                        str_reply = decrypted_reply.decode("utf-8")
+                        #flash(sub.filename)
+                        flash("Auto-decrypted " + sub.filename + ": " + str_reply, "notification")
+                        #sub.filename = str(int(sub.filename.split('-')[0])) + "-" + str_reply
+                    except UnicodeDecodeError:
+                        current_app.logger.error("Could not decode reply %s" %
+                                                sub.filename)
+                    except FileNotFoundError:
+                        current_app.logger.error("Reply file missing: %s" %
+                                                sub.filename)
 
         return render_template("col.html", filesystem_id=filesystem_id,
                                source=source, form=form)
@@ -140,6 +179,7 @@ def make_blueprint(config: SDConfig) -> Blueprint:
             elif fn.endswith("-doc.gz.gpg") or fn.endswith("doc.zip.gpg"):
                 submitted_file = Submission.query.filter(Submission.filename == fn).one()
                 mark_seen([submitted_file], journalist)
+            
             else:
                 message = Submission.query.filter(Submission.filename == fn).one()
                 mark_seen([message], journalist)
