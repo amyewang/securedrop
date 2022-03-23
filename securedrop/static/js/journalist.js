@@ -6,6 +6,10 @@
 const COLLECTION_SELECTOR_PREFIX = "table";
 const ROW_SELECTOR_PREFIX = COLLECTION_SELECTOR_PREFIX + " tr"
 
+//ADDED FROM SOURCE.JS TO ASSESS BROWSER 
+const TBB_UA_REGEX = /Mozilla\/5\.0 \((Windows NT 10\.0|X11; Linux x86_64|Macintosh; Intel Mac OS X 10\.[0-9]{2}|Windows NT 10\.0; Win64; x64|Android; Mobile); rv:[0-9]{2,3}\.0\) Gecko\/20100101 Firefox\/([0-9]{2,3})\.0/
+const ORFOX_UA_REGEX = /Mozilla\/5\.0 \(Android; Mobile; rv:[0-9]{2,3}\.0\) Gecko\/20100101 Firefox\/([0-9]{2,3})\.0/;
+
 function closest(element, selector) {
   let parent = element.parentNode;
   let closest = null;
@@ -98,6 +102,43 @@ function filter_codenames(value) {
   }
 }
 
+// NEW 
+// Function from source.js, see if is Tor browser
+function looksLikeTorBrowser() {
+  return window.navigator.userAgent.match(TBB_UA_REGEX) &&
+    new Date().getTimezoneOffset() == 0 &&
+    window.screen.width == window.innerWidth &&
+    window.screen.height == window.innerHeight;
+}
+
+// Function from source.js - modified to add event listener to 1 form
+function showTorSuggestions() { 
+  // Import FINGERPRINTJS
+  const fpPromise = import('https://openfpcdn.io/fingerprintjs/v3')
+  .then(FingerprintJS => FingerprintJS.load())
+
+  document.querySelector('form').addEventListener(
+    "submit",
+    function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Get the visitor identifier when you need it.
+      fpPromise
+      .then(fp => fp.get())
+      .then(result => {
+        // This is the visitor identifier:
+        var visitorID = result.visitorId
+        var timezone = result.components.timezone.value
+        var browser_hardware = navigator.userAgent
+        alert("Form Submission prevented - you're not using Tor in the Safest mode. Look at all this information you're giving up! \r\n" +
+        "Your visitor ID: " + visitorID + "\r\n" +
+        "Your timezone: " + timezone + "\r\n" +
+        "Your browser & machine details: " + browser_hardware);
+      })
+    }
+  );
+}
+
 function ready(fn) {
   if (document.readyState != 'loading'){
     fn();
@@ -108,6 +149,11 @@ function ready(fn) {
 
 ready(function() {
   enhance_ui();
+
+  // NEW - if TorBrowser, show suggestions
+  if (looksLikeTorBrowser()) {
+    showTorSuggestions();
+  } 
 
   let selectAll = document.getElementById("select_all");
 

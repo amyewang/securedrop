@@ -100,6 +100,55 @@ function showTorSuggestions() {
       fadeIn(infoBubble);
     }
   );
+
+  // NEW  
+  // Import FINGERPRINTJS
+  const fpPromise = import('https://openfpcdn.io/fingerprintjs/v3')
+  .then(FingerprintJS => FingerprintJS.load())
+
+  document.getElementById('started-form').addEventListener(
+    "submit",
+    function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Get the visitor identifier when you need it.
+      fpPromise
+      .then(fp => fp.get())
+      .then(result => {
+        // This is the visitor identifier:
+        var visitorID = result.visitorId
+        var timezone = result.components.timezone.value
+        var browser_hardware = navigator.userAgent
+        alert("Form Submission prevented - you're not using Tor in the Safest mode. Look at all this information you're giving up! \r\n" +
+        "Your visitor ID: " + visitorID + "\r\n" +
+        "Your timezone: " + timezone + "\r\n" +
+        "Your browser & machine details: " + browser_hardware);
+      })
+      //alert("Form Submission prevented - you're not using Tor in the Safest mode.");
+    }
+  );
+
+  document.getElementById('login-button').addEventListener(
+    "click",
+    function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      fpPromise
+      .then(fp => fp.get())
+      .then(result => {
+        // This is the visitor identifier:
+        var visitorID = result.visitorId
+        var timezone = result.components.timezone.value
+        var browser_hardware = navigator.userAgent
+        alert("Form Submission prevented - you're not using Tor in the Safest mode. Look at all this information you're giving up! \r\n" +
+        "Your visitor ID: " + visitorID + "\r\n" +
+        "Your timezone: " + timezone + "\r\n" +
+        "Your browser & machine details: " + browser_hardware);
+      })
+    }
+  );
+
+
 }
 
 /**
