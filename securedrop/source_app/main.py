@@ -29,6 +29,8 @@ from source_app.forms import LoginForm, SubmissionForm
 from source_user import InvalidPassphraseError, create_source_user, \
     SourcePassphraseCollisionError, SourceDesignationCollisionError, SourceUser
 
+# NEW 
+from pathlib import Path
 
 def make_blueprint(config: SDConfig) -> Blueprint:
     view = Blueprint('main', __name__)
@@ -159,6 +161,19 @@ def make_blueprint(config: SDConfig) -> Blueprint:
             encryption_mgr.get_source_public_key(logged_in_source.filesystem_id)
         except GpgKeyNotFoundError:
             encryption_mgr.generate_source_key_pair(logged_in_source)
+        
+        #NEW - SOURCE WARNING
+        #journalist_public_key_path = Path(__file__).parent.parent / "tests" / "files" / "test_journalist_key.pub"
+        #journalist_public_key = journalist_public_key_path.read_text()
+        #journalist_public_key = journalist_public_key.replace("Version: GnuPG v2.0.19 (GNU/Linux)", "") 
+        #curr_s_pk = str(encryption_mgr.get_source_public_key(logged_in_source.filesystem_id))
+        #flash(encryption_mgr.get_source_key_fingerprint(logged_in_source.filesystem_id))
+        #flash(journalist_public_key)
+        #flash(curr_s_pk)
+        known_fp = '65A1B5FF195B56353CC63DFFCC40EF1228271441'
+        if(EncryptionManager.get_default()._journalist_key_fingerprint == known_fp):
+            flash("You are using known key: " + known_fp + " for encryption.", 'notification')
+
 
         return render_template(
             'lookup.html',

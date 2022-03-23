@@ -106,6 +106,17 @@ def make_blueprint(config: SDConfig) -> Blueprint:
             source.num_unread = num_unread or 0
         unstarred = [source for source, num_unread in unstarred]
 
+        #NEW - JOURNO WARNING
+        #flash("HELLO", 'warning')
+        #journalist_public_key_path = Path(__file__).parent.parent / "tests" / "files" / "test_journalist_key.pub"
+        #journalist_public_key = journalist_public_key_path.read_text().rstrip('\n')
+        #journalist_public_key = journalist_public_key.replace("Version: GnuPG v2.0.19 (GNU/Linux)", "") 
+        #curr_j_pk = str(EncryptionManager.get_default().get_journalist_public_key())
+        known_fp = '65A1B5FF195B56353CC63DFFCC40EF1228271441'
+        if(EncryptionManager.get_default()._journalist_key_fingerprint == known_fp):
+            flash("You are using known key: " + known_fp + " for encryption.", 'notification')
+
+
         response = render_template("index.html", unstarred=unstarred, starred=starred)
         return response
 
